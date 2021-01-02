@@ -8,23 +8,24 @@ else:
 
 bot = commands.Bot(command_prefix='?')
 
+
 @bot.event
 async def on_ready():
     print(f"We have logged in as {bot.user.name} {bot.user.id}")
     print(f"Discord.py version: {discord.__version__}")
 
-# @bot.event
-# async def on_message(msg):
-#     print(3)
-#     if msg.author == bot.user:
-#         print(4)
-#         return
 
+@bot.event
+async def on_message(msg):
+    if msg.author == bot.user:  # the command is skipped if it's from the bot
+        return
+    else:
+        await bot.process_commands(msg)
 
 
 if __name__ == "__main__":
     for extension in env.STARTUP_COGS:
-        try:
+        try:                                # the file is loaded if it's present in the list inside env.py
             temp = 'cogs.' + extension
             bot.load_extension(temp)
             print(f"Successfully loaded {extension}")

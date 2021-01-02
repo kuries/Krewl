@@ -30,5 +30,4 @@ class general(commands.Cog, name = "general"):
         await context.send(embed=embed)
 
 def setup(bot):
-    print(1)
     bot.add_cog(general(bot))
