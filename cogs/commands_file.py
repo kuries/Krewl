@@ -6,11 +6,12 @@ if 'env.py' in os.listdir(os.getcwd()):
 else:
     sys.exit("env.py file not found!")
 
-class general(commands.Cog, name = "general"):
+
+class General(commands.Cog, name="general"):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command(name = 'hey')
+    @commands.command(name='hey')
     async def hey(self, ctx):
         await ctx.send(f"Hey {ctx.message.author}!")
 
@@ -29,5 +30,6 @@ class general(commands.Cog, name = "general"):
         )
         await context.send(embed=embed)
 
+
 def setup(bot):
-    bot.add_cog(general(bot))
+    bot.add_cog(General(bot))

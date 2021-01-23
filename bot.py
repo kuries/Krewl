@@ -6,13 +6,17 @@ if 'env.py' in os.listdir(os.getcwd()):
 else:
     sys.exit("env.py file not found!")
 
-bot = commands.Bot(command_prefix='?')
+intents = discord.Intents.default()
+intents.members = True
+
+bot = commands.Bot(command_prefix='?', intents=intents)
 
 
 @bot.event
 async def on_ready():
     print(f"We have logged in as {bot.user.name} {bot.user.id}")
     print(f"Discord.py version: {discord.__version__}")
+    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name="?help"))
 
 
 @bot.event
@@ -23,9 +27,11 @@ async def on_message(msg):
         await bot.process_commands(msg)
 
 
+bot.remove_command("help")
+
 if __name__ == "__main__":
     for extension in env.STARTUP_COGS:
-        try:                                # the file is loaded if it's present in the list inside env.py
+        try:  # the file is loaded if it's present in the list inside env.py
             temp = 'cogs.' + extension
             bot.load_extension(temp)
             print(f"Successfully loaded {extension}")
