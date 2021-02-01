@@ -2,7 +2,7 @@ import discord, sys, os
 import requests, json
 import asyncio
 import locale
-from discord.ext import commands
+from discord.ext import commands, tasks
 
 if 'env.py' in os.listdir(os.getcwd()):
     import env
@@ -48,35 +48,26 @@ def create_embed_world(country_id=None):
     return embed
 
 
-def create_embed_india(store):
+# def create_embed_india():
+#     # for converting the values to indian numbering system
+#     locale.setlocale(locale.LC_ALL, 'English_India.1252')
+#     return create_embed_world('in')
+
+
+async def create_embed_states(msg):
     # for converting the values to indian numbering system
     locale.setlocale(locale.LC_ALL, 'English_India.1252')
 
-    temp = requests.get("https://api.rootnet.in/covid19-in/stats/latest")
-    data_json = json.loads(temp.text)
-    index = 0
+    fe = open("./storage/covid_data.json", mode='r')
+    data_json = json.load(fe)
+    fe.close()
 
-    # data of the states is stored
-    if not store:
-        for i in data_json['data']['regional']:
-            if i['loc'] == 'Telengana':
-                i['loc'] = 'Telangana'
-            i['loc'] = i['loc'].lower()
-            store[i['loc']] = index
-            index += 1
-
-    return create_embed_world('in')
-
-
-async def create_embed_states(store, msg):
-    # for converting the values to indian numbering system
-    locale.setlocale(locale.LC_ALL, 'English_India.1252')
-
-    temp = requests.get("https://api.rootnet.in/covid19-in/stats/latest")
-    data_json = json.loads(temp.text)
+    # temp = requests.get("https://api.rootnet.in/covid19-in/stats/latest")
+    # data_json = json.loads(temp.text)
 
     try:
-        data_json = data_json["data"]["regional"][store[msg.content[2:].lower()]]
+        index = data_json['states'][msg.content[2:].lower()]
+        data_json = data_json['regional'][index]
     except KeyError:
         await msg.channel.send(f"{msg.author.mention} State not found.")
         return
@@ -86,7 +77,7 @@ async def create_embed_states(store, msg):
     embed.add_field(name="Confirmed", value=f"{data_json['confirmedCasesIndian']:n}", inline=False)
     embed.add_field(name="Recovered", value=f"{data_json['discharged']:n}", inline=False)
     embed.add_field(name="Deaths", value=f"{data_json['deaths']:n}", inline=False)
-    embed.set_footer(text="Press <'s state_name'> to get a detailed statistics of that state")
+    embed.set_footer(text="Type <'s state_name'> to get a detailed statistics of that state")
     await msg.channel.send(embed=embed)
 
 
@@ -94,6 +85,28 @@ class Covid(commands.Cog, name="corona"):
 
     def __init__(self, bot):
         self.bot = bot
+        self.bot.loop.create_task(self.file_update())
+
+
+    async def file_update(self):
+        await self.bot.wait_until_ready()
+        while not self.bot.is_closed():
+            print("Updating the file")
+            response = requests.get("https://api.rootnet.in/covid19-in/stats/latest")
+            store = json.loads(response.text)['data']
+            summary = store['summary']
+
+            with open("./storage/covid_data.json", mode='w') as f:
+                json_data = {}
+                state_names = {}
+                store = store['regional']
+                for i in range(len(store)):
+                    state_names[store[i]['loc'].lower()] = i
+                json_data['states'] = state_names
+                json_data['regional'] = store
+                json_data['summary'] = summary
+                json.dump(json_data, f, indent=4)
+            await asyncio.sleep(100)
 
     # ?covid <text> triggers the command
     @commands.command(name="covid")
@@ -106,11 +119,7 @@ class Covid(commands.Cog, name="corona"):
         # ?covid india (case insensitive)
         elif country.lower() == 'india':
 
-            store = {}                   #dictionary for storing the states data.
-
-            # embed specific to india and the store dictionary is now filled with the states data
-            create_embed_india(store)
-            await context.send(embed=create_embed_india(store))
+            await context.send(embed=create_embed_world('in'))
 
             def check(m):
                 return m.author == context.author and m.content[0:2] == "s "
@@ -125,7 +134,7 @@ class Covid(commands.Cog, name="corona"):
                                        f"try calling the command `?covid india` again.")
                     break
                 else:
-                    await create_embed_states(store, msg)
+                    await create_embed_states(msg)
 
         # ?covid <country-name>
         else:
