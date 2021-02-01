@@ -15,6 +15,12 @@ class General(commands.Cog, name="general"):
     async def hey(self, ctx):
         await ctx.send(f"Hey {ctx.message.author}!")
 
+    @commands.command(name='flag')
+    async def flag(self, ctx):
+        embed = discord.Embed(title=":flag_us:", color=0x14e147)
+        embed.add_field(name=":flag_in:", value="Indian flag", inline=False)
+        await ctx.send(embed=embed)
+
     @commands.command(name="ping")
     async def ping(self, context):
         embed = discord.Embed(

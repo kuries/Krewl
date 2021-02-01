@@ -22,8 +22,8 @@ def create_embed_world(country_id=None):
         url = 'http://corona-api.com/countries/' + country_id
         response = requests.get(url)
         store = json.loads(response.text)['data']
-        embed = discord.Embed(title=f"{store['name']}", description="\n\u200b\n", color=0x14e147)
-        store = store['latest_data']
+        embed = discord.Embed(title=f"{':flag_'+country_id.lower()+':'} {store['name']}", description="\n\u200b\n", color=0x14e147)
+        store = store['timeline'][0]
         active = store['confirmed'] - store['recovered'] - store['deaths']
 
     # if ?covid <country> command is called
@@ -33,14 +33,18 @@ def create_embed_world(country_id=None):
         response = requests.get("https://corona-api.com/timeline")
 
         store = json.loads(response.text)['data'][0]
-        embed = discord.Embed(title="World Statistics", description="Today\n\u200b\n", color=0x14e147)
+        embed = discord.Embed(title=":globe_with_meridians: World Statistics", description="Today \n\u200b\n", color=0x14e147)
         active = store['active']
 
     #the store variable is modified based on the above two condtions
     embed.add_field(name="Active", value=f"{active:n}", inline=False)
-    embed.add_field(name="Confirmed", value=f"{store['confirmed']:n}", inline=False)
-    embed.add_field(name="Recovered", value=f"{store['recovered']:n}", inline=False)
-    embed.add_field(name="Deaths", value=f"{store['deaths']:n}", inline=False)
+    embed.add_field(name="Confirmed", value=f"{store['confirmed']:n}\u200b \u200b \u200b \u200b :arrow_up: {store['new_confirmed']:n}", inline=False)
+    embed.add_field(name="Recovered", value=f"{store['recovered']:n}\u200b \u200b \u200b \u200b:arrow_up: {store['new_recovered']:n}", inline=False)
+    embed.add_field(name="Deaths", value=f"{store['deaths']:n}\u200b \u200b \u200b \u200b:arrow_up: "
+                                         f"{store['new_deaths']:n}", inline=False)
+    if country_id == 'in':
+        embed.set_footer(text="Press <'s state_name'> to get a detailed statistics of that state")
+
     return embed
 
 
@@ -61,25 +65,21 @@ def create_embed_india(store):
             store[i['loc']] = index
             index += 1
 
-    data_json = data_json["data"]["summary"]
-    active = data_json["confirmedCasesIndian"] - data_json["discharged"] - data_json["deaths"]
-    embed = discord.Embed(title="India", description="\n\u200b\n", color=0x14e147)
-    embed.add_field(name="Active", value=f"{active:n}", inline=False)
-    embed.add_field(name="Confirmed", value=f"{data_json['confirmedCasesIndian']:n}", inline=False)
-    embed.add_field(name="Recovered", value=f"{data_json['discharged']:n}", inline=False)
-    embed.add_field(name="Deaths", value=f"{data_json['deaths']:n}", inline=False)
-    embed.set_footer(text="Press <'s state_name'> to get a detailed statistics of that state")
-    return embed
+    return create_embed_world('in')
 
 
-def create_embed_states(store, msg):
+async def create_embed_states(store, msg):
     # for converting the values to indian numbering system
     locale.setlocale(locale.LC_ALL, 'English_India.1252')
 
     temp = requests.get("https://api.rootnet.in/covid19-in/stats/latest")
     data_json = json.loads(temp.text)
 
-    data_json = data_json["data"]["regional"][store[msg.content[2:].lower()]]
+    try:
+        data_json = data_json["data"]["regional"][store[msg.content[2:].lower()]]
+    except KeyError:
+        await msg.channel.send(f"{msg.author.mention} State not found.")
+        return
     active = data_json["confirmedCasesIndian"] - data_json["discharged"] - data_json["deaths"]
     embed = discord.Embed(title=f"{msg.content[2:].upper()}", description="\n\u200b\n", color=0x14e147)
     embed.add_field(name="Active", value=f"{active:n}", inline=False)
@@ -87,7 +87,7 @@ def create_embed_states(store, msg):
     embed.add_field(name="Recovered", value=f"{data_json['discharged']:n}", inline=False)
     embed.add_field(name="Deaths", value=f"{data_json['deaths']:n}", inline=False)
     embed.set_footer(text="Press <'s state_name'> to get a detailed statistics of that state")
-    return embed
+    await msg.channel.send(embed=embed)
 
 
 class Covid(commands.Cog, name="corona"):
@@ -119,12 +119,13 @@ class Covid(commands.Cog, name="corona"):
             while True:
                 # waits for the user to enter the command s <state-name>
                 try:
-                    msg = await self.bot.wait_for("message", check=check, timeout=30)
+                    msg = await self.bot.wait_for("message", check=check, timeout=45)
                 except asyncio.TimeoutError:
-                    await context.send("Loop terminated")
+                    await context.send(f"{context.author.mention} loop terminated. To get info on the indian states "
+                                       f"try calling the command `?covid india` again.")
                     break
                 else:
-                    await context.send(embed=create_embed_states(store, msg))
+                    await create_embed_states(store, msg)
 
         # ?covid <country-name>
         else:
@@ -134,8 +135,17 @@ class Covid(commands.Cog, name="corona"):
             country_id = json.loads(response_id.text)
 
             # gets the alpha 2 code for a particular country
-            country_id = country_id[0]['alpha2Code']
-            await context.send(embed=create_embed_world(country_id))
+            try:
+                country_id = country_id[0]['alpha2Code']
+            except KeyError:
+                if country[0].lower() == 'e':
+                    await context.send(f"{context.author.mention} Are you searching for england? Then search for 'uk' instead.")
+                elif country[0].lower() == 's':
+                    await context.send(f"{context.message.author.mention} Are you searching for scotland? Then search for 'uk' instead.")
+                else:
+                    await context.send(f"{context.author.mention} Country not found. ¯\_(ツ)_/¯")
+            else:
+                await context.send(embed=create_embed_world(country_id))
 
 
 def setup(bot):
