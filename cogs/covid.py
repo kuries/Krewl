@@ -22,7 +22,7 @@ def create_embed_world(country_id=None):
         url = 'http://corona-api.com/countries/' + country_id
         response = requests.get(url)
         store = json.loads(response.text)['data']
-        embed = discord.Embed(title=f"{':flag_'+country_id.lower()+':'} {store['name']}", description="\n\u200b\n", color=0x14e147)
+        embed = discord.Embed(title=f"{':flag_'+country_id.lower()+':'} {store['name']}", description="\n\u200b\n", color=env.COLOR)
         store = store['timeline'][0]
         active = store['confirmed'] - store['recovered'] - store['deaths']
 
@@ -33,7 +33,7 @@ def create_embed_world(country_id=None):
         response = requests.get("https://corona-api.com/timeline")
 
         store = json.loads(response.text)['data'][0]
-        embed = discord.Embed(title=":globe_with_meridians: World Statistics", description="Today \n\u200b\n", color=0x14e147)
+        embed = discord.Embed(title=":globe_with_meridians: World Statistics", description="Today \n\u200b\n", color=env.COLOR)
         active = store['active']
 
     #the store variable is modified based on the above two condtions
@@ -44,14 +44,7 @@ def create_embed_world(country_id=None):
                                          f"{store['new_deaths']:n}", inline=False)
     if country_id == 'in':
         embed.set_footer(text="Press <'s state_name'> to get a detailed statistics of that state")
-
     return embed
-
-
-# def create_embed_india():
-#     # for converting the values to indian numbering system
-#     locale.setlocale(locale.LC_ALL, 'English_India.1252')
-#     return create_embed_world('in')
 
 
 async def create_embed_states(msg):
@@ -72,7 +65,7 @@ async def create_embed_states(msg):
         await msg.channel.send(f"{msg.author.mention} State not found.")
         return
     active = data_json["confirmedCasesIndian"] - data_json["discharged"] - data_json["deaths"]
-    embed = discord.Embed(title=f"{msg.content[2:].upper()}", description="\n\u200b\n", color=0x14e147)
+    embed = discord.Embed(title=f"{msg.content[2:].upper()}", description="\n\u200b\n", color=env.COLOR)
     embed.add_field(name="Active", value=f"{active:n}", inline=False)
     embed.add_field(name="Confirmed", value=f"{data_json['confirmedCasesIndian']:n}", inline=False)
     embed.add_field(name="Recovered", value=f"{data_json['discharged']:n}", inline=False)
@@ -81,7 +74,7 @@ async def create_embed_states(msg):
     await msg.channel.send(embed=embed)
 
 
-class Covid(commands.Cog, name="corona"):
+class Covid(commands.Cog, name="Covid-19 stats"):
 
     def __init__(self, bot):
         self.bot = bot
@@ -106,23 +99,27 @@ class Covid(commands.Cog, name="corona"):
                 json_data['regional'] = store
                 json_data['summary'] = summary
                 json.dump(json_data, f, indent=4)
-            await asyncio.sleep(100)
+            await asyncio.sleep(10000)
 
     # ?covid <text> triggers the command
-    @commands.command(name="covid")
-    async def world(self, context, country='world'):
+    @commands.command(
+                        name="covid",
+                        help="Shows the real time statistics all over the world\nDefault is `world`",
+                        aliases=["c", "covid-19"])
+    async def world(self, context, *, country='world'):
+
+        country = country.lower()
 
         # ?covid world (case insensitive)
-        if country.lower() == 'world':
+        if country == 'world':
             await context.send(embed=create_embed_world())
 
         # ?covid india (case insensitive)
-        elif country.lower() == 'india':
-
+        elif country == 'india':
             await context.send(embed=create_embed_world('in'))
 
             def check(m):
-                return m.author == context.author and m.content[0:2] == "s "
+                return m.author == context.author and m.content[0:2].lower() == "s "
 
             # terminates when the user dosen't enter anything for 30 seconds
             while True:
@@ -145,11 +142,11 @@ class Covid(commands.Cog, name="corona"):
 
             # gets the alpha 2 code for a particular country
             try:
-                country_id = country_id[0]['alpha2Code']
+                country_id = country_id[0]['alpha2Code'].lower()
             except KeyError:
-                if country[0].lower() == 'e':
+                if country[0] == 'e':
                     await context.send(f"{context.author.mention} Are you searching for england? Then search for 'uk' instead.")
-                elif country[0].lower() == 's':
+                elif country[0] == 's':
                     await context.send(f"{context.message.author.mention} Are you searching for scotland? Then search for 'uk' instead.")
                 else:
                     await context.send(f"{context.author.mention} Country not found. ¯\_(ツ)_/¯")

@@ -9,14 +9,13 @@ else:
 intents = discord.Intents.default()
 intents.members = True
 
-bot = commands.Bot(command_prefix='?', intents=intents)
+bot = commands.Bot(command_prefix='?', intents=intents, activity=discord.Activity(type=discord.ActivityType.listening, name="?help"))
 
 
 @bot.event
 async def on_ready():
     print(f"We have logged in as {bot.user.name} {bot.user.id}")
     print(f"Discord.py version: {discord.__version__}")
-    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name="?help"))
 
 
 @bot.event
@@ -25,6 +24,13 @@ async def on_message(msg):
         return
     else:
         await bot.process_commands(msg)
+
+@bot.event
+async def on_command_error(ctx, error):
+    if isinstance(error, commands.CommandNotFound):
+        await ctx.send(f"{ctx.author.mention} Sorry, command not found!")
+        return
+    raise error
 
 
 bot.remove_command("help")
