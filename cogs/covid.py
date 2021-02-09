@@ -3,6 +3,7 @@ import requests, json
 import asyncio
 import locale
 from discord.ext import commands, tasks
+from edit_distance import word_check
 
 if 'env.py' in os.listdir(os.getcwd()):
     import env
@@ -55,17 +56,29 @@ async def create_embed_states(msg):
     data_json = json.load(fe)
     fe.close()
 
-    # temp = requests.get("https://api.rootnet.in/covid19-in/stats/latest")
-    # data_json = json.loads(temp.text)
-
     try:
         index = data_json['states'][msg.content[2:].lower()]
-        data_json = data_json['regional'][index]
     except KeyError:
-        await msg.channel.send(f"{msg.author.mention} State not found.")
-        return
+        state_name, err_val = word_check(msg.content[2:].lower())
+        print(msg.content[2:].lower())
+        if err_val < 3:
+            if len(state_name) == 1:
+                index = data_json['states'][state_name[0]]
+            elif len(state_name) <= 6:
+                embed = discord.Embed(title=f"Are you searching for any of these states?\n",description='\u200b', color=env.COLOR)
+                embed.add_field(name=f"{', '.join(state_name)}", value='\u200b', inline=False)
+                await msg.channel.send(embed=embed)
+                return
+            else:
+                await msg.channel.send(f"{msg.author.mention} State not found.")
+                return
+        else:
+            await msg.channel.send(f"{msg.author.mention} State not found.")
+            return
+
+    data_json = data_json['regional'][index]
     active = data_json["confirmedCasesIndian"] - data_json["discharged"] - data_json["deaths"]
-    embed = discord.Embed(title=f"{msg.content[2:].upper()}", description="\n\u200b\n", color=env.COLOR)
+    embed = discord.Embed(title=f"{data_json['loc']}", description="\n\u200b\n", color=env.COLOR)
     embed.add_field(name="Active", value=f"{active:n}", inline=False)
     embed.add_field(name="Confirmed", value=f"{data_json['confirmedCasesIndian']:n}", inline=False)
     embed.add_field(name="Recovered", value=f"{data_json['discharged']:n}", inline=False)
