@@ -21,7 +21,11 @@ class General(commands.Cog, name="General"):
                 mem = mem[1:]
             await ctx.send(f"'{mem}' is not a user in this server.")
             return
-        for i in range(5):
+        print(str(mem))
+        if str(mem) == 'lodestar#6104':
+            await ctx.send("Hehe. I won't allow it 😝")
+            return
+        for i in range(15):
             await ctx.send(f"{mem.mention}")
 
     @commands.command(name='hey', help="Greets the user back")
