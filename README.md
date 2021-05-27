@@ -3,8 +3,8 @@
 Krewl is a multi purpose bot and one of its main tasks is to get real time data on covid cases.
 
 ## Local Setup
-- Git clone the repository into your local machine.\
-- Set up a virtual environment for the project in the same folder and then activate it.\
+- Git clone the repository into your local machine.
+- Set up a virtual environment for the project in the same folder and then activate it.
 > For linux:
 `python3 -m venv <project_name> && source <project_name>/bin/activate`
 - Download the packages in the `requirements.txt` into your virtual environment\
