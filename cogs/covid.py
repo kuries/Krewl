@@ -13,7 +13,7 @@ else:
 
 def create_embed_world(country_id=None):
     # for converting the values to indian numbering system
-    locale.setlocale(locale.LC_ALL, 'English_India.1252')
+    locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
 
     # country_id consists of the alpha2 code
     # if ?covid world is called
@@ -50,7 +50,7 @@ def create_embed_world(country_id=None):
 
 async def create_embed_states(msg):
     # for converting the values to indian numbering system
-    locale.setlocale(locale.LC_ALL, 'English_India.1252')
+    locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
 
     fe = open("./storage/covid_data.json", mode='r')
     data_json = json.load(fe)
@@ -75,7 +75,7 @@ async def create_embed_states(msg):
         else:
             await msg.channel.send(f"{msg.author.mention} State not found.")
             return
-
+    
     data_json = data_json['regional'][index]
     active = data_json["confirmedCasesIndian"] - data_json["discharged"] - data_json["deaths"]
     embed = discord.Embed(title=f"{data_json['loc']}", description="\n\u200b\n", color=env.COLOR)
