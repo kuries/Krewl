@@ -1,4 +1,5 @@
-_pycache_
+__pycache__/
+cogs/__pycache__/
 venv
 world.py
 india.py
